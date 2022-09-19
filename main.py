@@ -1,36 +1,41 @@
 
 # These lines tell the robot which pre-built code it is going to use
 #libs??
+
 from pybricks import ev3brick
 from pybricks.ev3devices import Motor, TouchSensor, ColorSensor, UltrasonicSensor, GyroSensor
 from pybricks.parameters import Port, Stop, Direction, Button, Color
 from pybricks.tools import wait, StopWatch
 from pybricks.robotics import DriveBase
-class sensors():
-    def __init__():
-        pass
-    #Turning function
-    def turn(turnDegrees, robot):
-        robot.turn(turnDegrees)
-    #Target detection function
-    def distanceDetection(robot):
-        distance = obstacle_sensor.distance()
-	# Checks if an obstacle is within 100mm (10cm)
-        if distance < 100:
-		#Turns the robot 120 degrees
-            sensors.turn("120", robot)
-            
-def init():
-    ev3 = ev3brick()
-    left_motor = Motor(Port.B)
-    right_motor = Motor(Port.C)
-    robot = DriveBase(left_motor, right_motor, wheel_diameter=55.5, axle_track=104)
-    
-    deviceTuple = (ev3, left_motor, right_motor,robot)
-    return deviceTuple
 # Initialize the EV3 Brick.
-
-
+ColourPort = Port.A
+LeftMotorPort = Port.B
+RightMotorPort = Port.C
+ArmPort = Port()
+UltrasonicPort = Port()
+#class operations inherits ev3brick
+class operations(ev3brick):
+    def __init__(self):
+        self.ev3 = super.ev3brick()
+        self.motorLeft = Motor.port(LeftMotorPort)
+        self.motorRight = Motor.port(RightMotorPort)
+    def move(self, moveDict):
+        self.motorRight.run_time(moveDict['Speed'])
+        self.motorLeft.run_time(moveDict['Speed'])
+        self.motorLeft.stop()
+        self.motorRight.stop()
+    def turn(self, turnDict):
+        if turnDict["Angle"] >= 0:
+            self.motorLeft.turn(turnDict['Angle'])
+        elif turnDict["Angle"] < 0:
+            self.motorLeft.turn(turnDict['Angle'])
+    def colourDetect(self):
+        return ColorSensor(ColourPort).color()
+    def moveArm(self):
+        pass
+    def distanseDetect(self):
+        distance = UltrasonicSensor(UltrasonicPort).distance()
+        return distance
 # Initialize the motors.
 
 
@@ -50,10 +55,32 @@ def init():
 # 	counter = counter + 1
 
 # Initialize the Ultrasonic Sensor.
-obstacle_sensor = UltrasonicSensor(Port.S4)
-
-robot_objs = init()
+#initialize the operations object
+device = operations()
 #Loops forever
 while True:
-	# Measures the distance between the ultrasonic sensor and an obstacle in millimetres
-    sensors.distanceDetection(robot_objs[3])
+        # while device.distanseDetect() > 100:
+    while device.colourDetect() == Color.BLACK:
+        moveDict = {
+            "Speed" : 360,
+            "Degrees" : 0
+        }
+        device.move(moveDict)
+        moveDict = None
+    while device.colourDetect != Color.BLACK:
+        turnDict = {
+                "Angle": "5"
+            }
+        turnedAngle = 0
+        turnedAngle+=5
+        device.turn(turnDict)
+        if turnedAngle >= 90:
+            turnDict = {
+                "Angle" : "-90"
+            }
+            device.turn(turnDict)
+            turnedAngle = 0
+            turnDict = {
+                "Angle" : "-5"
+            }
+    
