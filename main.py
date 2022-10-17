@@ -1,86 +1,59 @@
+#!/usr/bin/env pybricks-micropython
 
-# These lines tell the robot which pre-built code it is going to use
-#libs??
+"""
+Example LEGO® MINDSTORMS® EV3 Robot Educator Color Sensor Down Program
+----------------------------------------------------------------------
 
-from pybricks import ev3brick
-from pybricks.ev3devices import Motor, TouchSensor, ColorSensor, UltrasonicSensor, GyroSensor
-from pybricks.parameters import Port, Stop, Direction, Button, Color
-from pybricks.tools import wait, StopWatch
+This program requires LEGO® EV3 MicroPython v2.0.
+Download: https://education.lego.com/en-us/support/mindstorms-ev3/python-for-ev3
+
+Building instructions can be found at:
+https://education.lego.com/en-us/support/mindstorms-ev3/building-instructions#robot
+"""
+
+from pybricks.hubs import EV3Brick
+from pybricks.ev3devices import Motor, ColorSensor
+from pybricks.parameters import Port
+from pybricks.tools import wait
 from pybricks.robotics import DriveBase
-# Initialize the EV3 Brick.
-ColourPort = Port.A
-LeftMotorPort = Port.B
-RightMotorPort = Port.C
-ArmPort = Port()
-UltrasonicPort = Port()
-#class operations inherits ev3brick
-class operations(ev3brick):
-    def __init__(self):
-        self.ev3 = super.ev3brick()
-        self.motorLeft = Motor.port(LeftMotorPort)
-        self.motorRight = Motor.port(RightMotorPort)
-    def move(self, moveDict):
-        self.motorRight.run_time(moveDict['Speed'])
-        self.motorLeft.run_time(moveDict['Speed'])
-        self.motorLeft.stop()
-        self.motorRight.stop()
-    def turn(self, turnDict):
-        if turnDict["Angle"] >= 0:
-            self.motorLeft.turn(turnDict['Angle'])
-        elif turnDict["Angle"] < 0:
-            self.motorLeft.turn(turnDict['Angle'])
-    def colourDetect(self):
-        return ColorSensor(ColourPort).color()
-    def moveArm(self):
-        pass
-    def distanseDetect(self):
-        distance = UltrasonicSensor(UltrasonicPort).distance()
-        return distance
-# Initialize the motors.
 
+# Initialize the motors.
+left_motor = Motor(Port.B)
+right_motor = Motor(Port.C)
+ev3 = EV3Brick()
+# Initialize the color sensor.
+line_sensor = ColorSensor(Port.S3)
 
 # Initialize the drive base.
+robot = DriveBase(left_motor, right_motor, wheel_diameter=55.5, axle_track=104)
 
+# Calculate the light threshold. Choose values based on your measurements.
+BLACK = 9
+WHITE = 85
+threshold = (BLACK + WHITE) / 2
 
-# Drives at speed (mm/sec) while steering (degrees/sec) 
-# robot.drive(speed, steering)
-# until program ends or you give another command
+# Set the drive speed at 100 millimeters per second.
+DRIVE_SPEED = 100
 
+# Set the gain of the proportional line controller. This means that for every
+# percentage point of light deviating from the threshold, we set the turn
+# rate of the drivebase to 1.2 degrees per second.
 
-#Loops a certain number of times
-# for i in range(4):
-# 	# Drives at speed (mm/sec) while steering (degrees/sec) 
-# 	# for time milliseconds	
-# 	drive_time(speed, steering, time) 
-# 	counter = counter + 1
-
-# Initialize the Ultrasonic Sensor.
-#initialize the operations object
-device = operations()
-#Loops forever
+# For example, if the light value deviates from the threshold by 10, the robot
+# steers at 10*1.2 = 12 degrees per second.
+PROPORTIONAL_GAIN = 1.2
+class operations(EV3Brick):
+    def __init__(self):
+        self.ev3 = super.EV3Brick()
+    def get_turn_rate(PROPORTIONAL_GAIN, deviation):
+        turn_rate = PROPORTIONAL_GAIN * deviation
+        return turn_rate
+    def drive (DRIVE_SPEED, turn_rate):
+        robot.drive(DRIVE_SPEED, turn_rate)
+    def deviation():
+        deviation = line_sensor.reflection() - threshold
+        return deviation
+# Start following the line endlessly.
+op = operations
 while True:
-        # while device.distanseDetect() > 100:
-    while device.colourDetect() == Color.BLACK:
-        moveDict = {
-            "Speed" : 360,
-            "Degrees" : 0
-        }
-        device.move(moveDict)
-        moveDict = None
-    while device.colourDetect != Color.BLACK:
-        turnDict = {
-                "Angle": "5"
-            }
-        turnedAngle = 0
-        turnedAngle+=5
-        device.turn(turnDict)
-        if turnedAngle >= 90:
-            turnDict = {
-                "Angle" : "-90"
-            }
-            device.turn(turnDict)
-            turnedAngle = 0
-            turnDict = {
-                "Angle" : "-5"
-            }
-    
+    op.drive(DRIVE_SPEED, op.get_turn_rate(PROPORTIONAL_GAIN, int(op.deviation)))
